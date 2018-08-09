@@ -60,6 +60,7 @@ func NewAppCmd(binPath string, port int) AppCmd {
 func (cmd AppCmd) Start() error {
 	listeningWriter := &startupListeningWriter{os.Stdout, make(chan bool)}
 	cmd.Stdout = listeningWriter
+	cmd.Stderr = os.Stderr
 	revel.RevelLog.Debug("Exec app:", "path", cmd.Path, "args", cmd.Args)
 	if err := cmd.Cmd.Start(); err != nil {
 		revel.RevelLog.Fatal("Error running:", "error", err)
@@ -94,7 +95,8 @@ func (cmd AppCmd) Run() {
 func (cmd AppCmd) Kill() {
 	if cmd.Cmd != nil && (cmd.ProcessState == nil || !cmd.ProcessState.Exited()) {
 		revel.RevelLog.Debug("Killing revel server pid", "pid", cmd.Process.Pid)
-		err := cmd.Process.Kill()
+		err := cmd.Process.Signal(os.Interrupt)
+		defer cmd.Process.Wait()
 		if err != nil {
 			revel.RevelLog.Fatal("Failed to kill revel server:", "error", err)
 		}
